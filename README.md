@@ -4,7 +4,7 @@ This is only the dump tool for [ASPECT](https://github.com/aickau/spectra-cluste
 The main purpose of this code base is to reliably compile and run under Linux. The afaConnector is removed.
 
 ## How to compile
-    git pull https://github.com/bloerg/ASPECT-dump-tool
+    git clone https://github.com/bloerg/ASPECT-dump-tool
     cd ASPECT-dump-tool
     cd sdsslib
     make
