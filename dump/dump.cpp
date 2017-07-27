@@ -27,7 +27,6 @@
 #include "sdsslib/SpectraHelpers.h"
 #include "sdsslib/sdssSoftwareVersion.h"
 #include "sdsslib/spectraDB.h"
-#include "sdsslib/afaConnector.h"
 
 
 
@@ -59,14 +58,12 @@ int main(int argc, char* argv[])
 	Helpers::print("    DR12 spectra can be downloaded here: http://data.sdss3.org/sas/dr12/sdss/spectro/redux/26/spectra \n\n", &logFile);
 	Helpers::print("(2) Generation of n sine test spectra with increasing frequency. Use -t\n\n", &logFile);
 	Helpers::print("(3) Reads binary dump files and extracts text tables out of it. Use -i\n\n", &logFile);
-	Helpers::print("(4) Uploads spectra from binary dump files to ASPECT-FPGA-Accelerator (AFA). Use -a\n\n", &logFile);
 
 	std::string sstrDataDir = FileHelpers::getCurrentDirectory()+DATADIR;
 	std::string sstrDumpFile = DUMPFILE;
 	int sineTestSpectra = 0;
 	unsigned int spectraFilter = SPT_DEFAULTFILTER;
 	std::string sstrInputDumpFile("");
-	std::string sstrAfaDumpFile("");
 	std::string sstrSelectionListFilename("");
 	
 
@@ -77,7 +74,6 @@ int main(int argc, char* argv[])
 		sstrExamples += std::string("Write FITS files to binary dump file: \n    dump.exe -d F:/SDSS_ANALYZE/fits/spectro/data/* -o allSpectra.bin -f 25 -s selectionlist.txt\n");
 		sstrExamples += std::string("Write 1000 sine test spectra: \n    dump.exe -t 1000 -o allSpectra.bin\n");
 		sstrExamples += std::string("Outputs a linear list of the network: \n    dump.exe -i sofmnet.bin\n");
-		sstrExamples += std::string("Uploads spectra dump to ASPECT-FPGA-Accelerator (AFA) \n    dump.exe -a allSpectra.bin\n");
 
 
 		TCLAP::CmdLine cmd(sstrExamples, ' ', sstrSDSSVersionString);
@@ -95,7 +91,6 @@ int main(int argc, char* argv[])
 		TCLAP::ValueArg<unsigned int> filterArg("f", "filter", sstrFilterDesc, false, spectraFilter, "Dump only FITS files with the given filter type.");
 		TCLAP::ValueArg<std::string> inputFilenameArg("i", "inputdumpfile", "example: sofmnet.bin. If input dump file is specified, then all other arguments are ignored. Outputs a linear list of the network.", false, sstrInputDumpFile, "Dumpfile for reverse reads.");
 		TCLAP::ValueArg<std::string> selectionListFilenameArg("s", "selection", "Optional selection list of FITS files to dump a small subset of input spectra. File should contain plate-mjd-fiber pairs, e.g. 3586 55181 0001. First line in the file is the header and is ignored.", false, sstrSelectionListFilename, "selectionlist.txt");
-		TCLAP::ValueArg<std::string> afaFilenameArg("a", "afaupload", "example: allSpectra.bin. If afa upload is specified, then upload spectra dump to ASPECT-FPGA-Accelerator (AFA). All other arguments are ignored.", false, sstrAfaDumpFile, "Dumpfile for AFA upload.");
 
 		cmd.add( dataDirArg );
 		cmd.add( outputFilenameArg );
@@ -103,7 +98,6 @@ int main(int argc, char* argv[])
 		cmd.add( filterArg );
 		cmd.add( inputFilenameArg );
 		cmd.add( selectionListFilenameArg );
-		cmd.add( afaFilenameArg );
 
 		cmd.parse( argc, argv );
 
@@ -112,7 +106,6 @@ int main(int argc, char* argv[])
 		sineTestSpectra				= sineTestArg.getValue();
 		spectraFilter				= filterArg.getValue();
 		sstrInputDumpFile			= inputFilenameArg.getValue();
-		sstrAfaDumpFile				= afaFilenameArg.getValue();
 		sstrSelectionListFilename	= selectionListFilenameArg.getValue();
 	}
 	catch (TCLAP::ArgException &e)  
@@ -121,7 +114,6 @@ int main(int argc, char* argv[])
 	}
 
 	const bool bExtractFilenames = !sstrInputDumpFile.empty();
-	const bool bAfaUpload = !sstrAfaDumpFile.empty();
 
 	if ( sineTestSpectra > 0 )
 	{
@@ -163,42 +155,6 @@ int main(int argc, char* argv[])
 		}
 		Helpers::print( "fin.\n", &logFile );
 	
-		return 0;
-	}
-	else if ( bAfaUpload )
-	{
-		// upload spectra dump file to AFA 
-		///////////////////////////////////////////////////////////////////////////////////
-
-		Helpers::print( "Uploading spectra to ASPECT-FPGA-Accelerator (AFA) with following parameters:\n", &logFile);
-		Helpers::print( "dumpfile: "+sstrAfaDumpFile+"\n", &logFile );
-
-		SpectraVFS vfs(sstrAfaDumpFile, true);
-		size_t numSpectra( vfs.getNumSpectra() );
-
-		if ( numSpectra == 0)
-		{
-			return 1;
-		}
-
-
-		AfaConnector afaConnector;
-
-		if ( !afaConnector.isAFADeviceAvailable() )
-		{
-			Helpers::print( "Could not find ASPECT-FPGA-Accelerator:\n", &logFile );
-			Helpers::print( afaConnector.getErrorMsg()+"\n", &logFile );
-			return 1;
-		}
-
-
-		if ( !afaConnector.writeSpectra(vfs) )
-		{
-			Helpers::print( "Error transferring data to ASPECT-FPGA-Accelerator:\n", &logFile );
-			Helpers::print( afaConnector.getErrorMsg(), &logFile );
-			return 1;
-		}
-		Helpers::print( "Finished transfer of "+ Helpers::numberToString<int>(numSpectra) +" spectra to ASPECT-FPGA-Accelerator.\n", &logFile );
 		return 0;
 	}
 	else
