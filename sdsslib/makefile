@@ -24,7 +24,7 @@ INCLUDES = -I../  -I../3rdparty
 LIBS = 
 
 
-TARGET  = ../libsdss.so
+TARGET  = ../dump/libsdss.so
 EXCLUDES = BigTiff glextensions glFBO glhelper glshaderprogram gltexture FileArchive
 SOURCES = $(filter-out $(addsuffix .cpp,$(EXCLUDES)),$(wildcard *.cpp))
 HEADERS = $(filter-out $(addsuffix .h,$(EXCLUDES))   ,$(wildcard *.h))

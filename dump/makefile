@@ -8,7 +8,7 @@ CFLAGS       = -fPIC -g -Wall -m64 -D_FILE_OFFSET_BITS=64  -fopenmp
 
 # define linker flags
 # -Wl,-rpath=/mnt/hgfs/vmshare/mpitest
-LDFLAGS      = -L../ -Wl,-rpath=/mnt/hgfs/vmshare/sdss/dump
+LDFLAGS      = -L../ -Wl,-rpath=./
 
 # define debug flags
 #
