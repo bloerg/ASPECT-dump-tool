@@ -28,7 +28,7 @@
 #include "spectraBaseHelpers.h"
 #include "CSVExport.h"
 #include "Timer.h"
-#include "HTMLexport.h"
+#include "HTMLExport.h"
 
 // TODO: port to linux
 #ifndef __linux
