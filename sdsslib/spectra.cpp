@@ -1490,10 +1490,6 @@ void Spectra::normalizeByFlux()
 	calcMinMax();
 }
 
-
-extern "C" void spectraAdaptX64(const float *a0, const float *a1, float *adaptionRate, size_t numsamples);
-
-
 void Spectra::adapt( const Spectra &_spectra, float _adaptionRate )
 {
 	//	million adaption / sec
@@ -1513,10 +1509,6 @@ void Spectra::adapt( const Spectra &_spectra, float _adaptionRate )
 	const float *a1 = &_spectra.m_Amplitude[Spectra::pixelStart];
 	size_t numSamples4 = (Spectra::pixelEnd >> 3) << 3;
 	SSE_ALIGN float adaptionRate4[4] = {_adaptionRate,_adaptionRate,_adaptionRate,_adaptionRate}; 
-
-#ifdef X64
-	spectraAdaptX64(a0,a1,adaptionRate4,numSamples4);
-#else // X64
 	_asm {
 		mov edi, a0
 		mov esi, a1
@@ -1551,8 +1543,6 @@ loop1:
 		dec ecx
 		jnz loop1
 	}
-#endif // X64
-
 	int i=numSamples4;
 	for (i;i<Spectra::pixelEnd;i++)
 	{
@@ -1560,35 +1550,14 @@ loop1:
 	}
 #else // __linux
 
-#ifdef X64
-
-	const float *a0 = &m_Amplitude[Spectra::pixelStart];
-	const float *a1 = &_spectra.m_Amplitude[Spectra::pixelStart];
-	size_t numSamples4 = (Spectra::pixelEnd >> 3) << 3;
-	SSE_ALIGN float adaptionRate4[4] = {_adaptionRate,_adaptionRate,_adaptionRate,_adaptionRate}; 
-
-	spectraAdaptX64(a0,a1,adaptionRate4,numSamples4);
-
-	int i=numSamples4;
-	for (i;i<Spectra::pixelEnd;i++)
-	{
-		m_Amplitude[i] += _adaptionRate*(_spectra.m_Amplitude[i]-m_Amplitude[i]);
-	}
-#else // !X64
-	// c-version (slow)
 	for ( size_t i=Spectra::pixelStart;i<Spectra::pixelEnd;i++ )
 	{
 		m_Amplitude[i] += _adaptionRate*(_spectra.m_Amplitude[i]-m_Amplitude[i]);
 	}
-#endif // X64
 #endif
 #endif //! SSE_DISABLED
 
 }
-
-
-
-extern "C" void spectraCompareX64(const float *a0, const float *a1, float *errout, size_t numsamples);
 
 float Spectra::compare(const Spectra &_spectra) const
 {
@@ -1610,10 +1579,6 @@ float Spectra::compare(const Spectra &_spectra) const
 	const float *a0 = &m_Amplitude[Spectra::pixelStart];
 	const float *a1 = &_spectra.m_Amplitude[Spectra::pixelStart];
 	size_t numSamples4 = (Spectra::pixelEnd >> 3) << 3;
-
-#ifdef X64
-	spectraCompareX64(a0,a1,errorv,numSamples4);
-#else // X64
 
 	_asm {
 		mov edi, a0
@@ -1649,7 +1614,6 @@ loop1:
 
 		movaps errorv, xmm0
 	}
-#endif // X64
 
 	float error=errorv[0]+errorv[1]+errorv[2]+errorv[3];
 
@@ -1662,35 +1626,12 @@ loop1:
 
 #else // ___linux
 
-#ifdef X64
-	SSE_ALIGN float errorv[4];
-
-	// optimized memory friendly version. make sure spectra is 16 bytes aligned
-	// this is 10x faster than compiler generated SSE code!
-	const float *a0 = &m_Amplitude[Spectra::pixelStart];
-	const float *a1 = &_spectra.m_Amplitude[Spectra::pixelStart];
-	size_t numSamples4 = (Spectra::pixelEnd >> 3) << 3;
-
-
-	spectraCompareX64(a0,a1,errorv,numSamples4);
-
-	float error=errorv[0]+errorv[1]+errorv[2]+errorv[3];
-
-	int i=numSamples4;
-	for (i;i<pixelEnd;i++)
-	{
-		float d = m_Amplitude[i]-_spectra.m_Amplitude[i];
-		error += d*d;
-	}
-#else // !X64
-
 	float error=0.0f;
 	for (size_t i=Spectra::pixelStart;i<Spectra::pixelEnd;i++)
 	{
 		float d = m_Amplitude[i]-_spectra.m_Amplitude[i];
 		error += d*d;
 	}
-#endif // X64
 
 #endif // !WIN32
 #endif // !SSE_DISABLED
